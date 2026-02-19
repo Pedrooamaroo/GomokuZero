@@ -10,17 +10,17 @@ from .game_engine import apply_capture_pente, check_win_by_capture
 
 def self_play_game(network, game=None, time_limit=5.0, temperature_threshold=15):
     """
-    Joga um jogo completo de self-play usando MCTS unificado
+    Plays a complete self-play game using the unified MCTS.
     
-    Argumentos:
+    Args:
         network: GomokuNet
-        game: GomokuGame ou PenteGame
-        time_limit: tempo limite em segundos por jogada
-        temperature_threshold: jogadas até usar temp=1.0, depois temp=0.1
+        game: GomokuGame or PenteGame
+        time_limit: time limit in seconds per move
+        temperature_threshold: number of moves until temp drops from 1.0 to 0.1
     
     Returns:
-        game_data: lista de (state, policy, player)
-        winner: int (1, 2, ou 0)
+        game_data: list of (state, policy, player)
+        winner: int (1, 2, or 0)
     """
     if game is None:
         game = GomokuGame(board_size=15)
@@ -110,17 +110,17 @@ def self_play_game(network, game=None, time_limit=5.0, temperature_threshold=15)
 
 def train_network(network, optimizer, buffer, batch_size=64, epochs=10):
     """
-    Treina rede neural com experiências do buffer
+    Trains the neural network using experiences from the buffer.
     
-    Argumentos:
+    Args:
         network: GomokuNet
         optimizer: torch optimizer
         buffer: AugmentedBuffer
-        batch_size: tamanho do batch
-        epochs: número de épocas
+        batch_size: batch size
+        epochs: number of epochs
     
     Returns:
-        losses: dict com histórico de losses
+        losses: dict with loss history
     """
     network.train()
     device = next(network.parameters()).device
@@ -170,13 +170,9 @@ def train_network(network, optimizer, buffer, batch_size=64, epochs=10):
         losses['value'].append(epoch_value_loss)
         losses['total'].append(epoch_total_loss)
         
-        print(f"  Época {epoch+1}/{epochs}: "
+        print(f"  Epoch {epoch+1}/{epochs}: "
               f"Policy Loss={epoch_policy_loss:.4f}, "
               f"Value Loss={epoch_value_loss:.4f}, "
               f"Total={epoch_total_loss:.4f}")
     
     return losses
-
-
-if __name__ == "__main__":
-    pass
