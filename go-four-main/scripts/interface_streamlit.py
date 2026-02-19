@@ -4,6 +4,7 @@ import time
 import sys
 import os
 
+# Path configuration to ensure modules can be imported
 current_script_path = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_script_path)
 src_path = os.path.join(project_root, 'src')
@@ -18,7 +19,7 @@ try:
     import game_engine
     from player import Player
 except ImportError:
-    st.error("Erro ao importar módulos. Verifica se estás a correr o script a partir da raiz do projeto.")
+    st.error("Error importing modules. Please verify you are running the script from the project root.")
     st.stop()
 
 st.set_page_config(page_title="AlphaZero Arena", page_icon="⚔️", layout="wide")
@@ -27,17 +28,18 @@ st.set_page_config(page_title="AlphaZero Arena", page_icon="⚔️", layout="wid
 @st.cache_resource
 def load_player_agent(game_type, player_ind):
     """
-    Carrega uma instância do Player.
-    player_ind: 1 (Pretas) ou 2 (Brancas)
+    Loads a Player instance.
+    player_ind: 1 (Black) or 2 (White)
     """
     try:
         player = Player(rules=game_type, board_size=15)
         player.set_player_ind(player_ind)
-        return player, "Sucesso"
+        return player, "Success"
     except Exception as e:
         return None, str(e)
 
 
+# Session State Initialization
 if 'board' not in st.session_state:
     st.session_state.board = np.zeros((15, 15), dtype=np.int8)
 if 'turn' not in st.session_state:
@@ -63,7 +65,7 @@ def reset_game():
 
 
 def apply_move(row, col, player_ind, game_type):
-    """Aplica uma jogada no estado e verifica vitória"""
+    """Applies a move to the state and checks for a win."""
     st.session_state.board[row, col] = player_ind
     st.session_state.last_move = (row, col)
     
@@ -83,11 +85,11 @@ def ai_move_logic(game_type, ai_player, player_ind):
     board = st.session_state.board
     last_move = st.session_state.last_move
     
-    with st.spinner(f'IA (P{player_ind}) a pensar...'):
+    with st.spinner(f'AI (P{player_ind}) thinking...'):
         row, col = ai_player.play(board.tolist(), 0, last_move)
 
     if row == -1 or st.session_state.board[row, col] != 0:
-        st.error(f"IA (P{player_ind}) desistiu ou fez jogada inválida!")
+        st.error(f"AI (P{player_ind}) resigned or made an invalid move!")
         st.session_state.game_over = True
         return
 
@@ -115,89 +117,90 @@ def check_win(player, game_type):
             st.snow()    
 
 
-st.title("Arena AlphaZero")
+st.title("AlphaZero Arena")
 
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.header("Configurações")
+    st.header("Settings")
     
-    # 1. Escolha do Jogo
-    game_mode = st.selectbox("Regras do Jogo", ["gomoku", "pente"], key="gmode")
+    # 1. Game Selection
+    game_mode = st.selectbox("Game Rules", ["gomoku", "pente"], key="gmode")
     
-    # 2. Escolha do Modo
-    match_mode = st.radio("Modo de Partida", ["Humano vs IA", "IA vs IA"], key="mmode")
+    # 2. Mode Selection
+    # NOTE: Logic below relies on these English strings
+    match_mode = st.radio("Match Mode", ["Human vs AI", "AI vs AI"], key="mmode")
     
     st.divider()
 
-    # 3. Carregamento de Agentes
+    # 3. Agent Loading
     agent2, msg2 = load_player_agent(game_mode, 2)
     agent1 = None
     
     status_text = ""
-    if match_mode == "IA vs IA":
+    if match_mode == "AI vs AI":
         agent1, msg1 = load_player_agent(game_mode, 1)
         if agent1 and agent2:
-            status_text = "Ambas as IAs prontas!"
+            status_text = "Both AIs ready!"
         else:
-            status_text = f"Erro IA: {msg1 or msg2}"
+            status_text = f"AI Error: {msg1 or msg2}"
     else:
         if agent2:
-            status_text = "IA (P2) pronta!"
+            status_text = "AI (P2) ready!"
         else:
-            status_text = f"Erro IA: {msg2}"
+            status_text = f"AI Error: {msg2}"
     
-    if "Erro" in status_text:
+    if "Error" in status_text:
         st.error(status_text)
     else:
         st.success(status_text)
-        st.caption(f"Modelo usado: {game_mode}_model_best.pth")
+        st.caption(f"Model used: {game_mode}_model_best.pth")
 
     st.divider()
   
-    if st.button("🔄 Novo Jogo", type="primary"):
+    if st.button("🔄 New Game", type="primary"):
         reset_game()
         st.rerun()
 
     auto_play = False
     sleep_time = 0.5
-    if match_mode == "IA vs IA" and not st.session_state.game_over:
+    if match_mode == "AI vs AI" and not st.session_state.game_over:
         st.subheader("Auto-Play")
-        auto_play = st.checkbox("Executar Automaticamente", value=False)
+        auto_play = st.checkbox("Run Automatically", value=False)
         if auto_play:
-            sleep_time = st.slider("Velocidade (segundos)", 0.0, 2.0, 0.5)
+            sleep_time = st.slider("Speed (seconds)", 0.0, 2.0, 0.5)
 
     if game_mode == 'pente':
         st.divider()
-        st.subheader("Capturas")
+        st.subheader("Captures")
         c1 = st.session_state.captures[1]
         c2 = st.session_state.captures[2]
         
-        p1_label = "IA 1 (⚫)" if match_mode == "IA vs IA" else "Humano (⚫)"
-        p2_label = "IA 2 (⚪)"
+        p1_label = "AI 1 (⚫)" if match_mode == "AI vs AI" else "Human (⚫)"
+        p2_label = "AI 2 (⚪)"
         
-        st.metric(p1_label, c1, delta=f"Faltam {5 - c1//2} pares")
-        st.metric(p2_label, c2, delta=f"Faltam {5 - c2//2} pares")
+        st.metric(p1_label, c1, delta=f"{5 - c1//2} pairs left")
+        st.metric(p2_label, c2, delta=f"{5 - c2//2} pairs left")
 
     if st.session_state.winner:
         st.divider()
         w = st.session_state.winner
         if w == 1:
-            lbl = "IA 1 (Pretas)" if match_mode == "IA vs IA" else "HUMANO"
-            st.success(f"VENCEDOR: {lbl}!")
+            lbl = "AI 1 (Black)" if match_mode == "AI vs AI" else "HUMAN"
+            st.success(f"WINNER: {lbl}!")
         else:
-            st.info(f"VENCEDOR: IA 2 (Brancas)!")
+            st.info(f"WINNER: AI 2 (White)!")
 
 with col2:
     turn_label = ""
     if st.session_state.game_over:
-        turn_label = "Jogo Terminado"
+        turn_label = "Game Over"
     else:
         t = st.session_state.turn
-        if match_mode == "Humano vs IA":
-            turn_label = "👤 O teu turno (Pretas)" if t == 1 else "🤖 IA a pensar..."
+        if match_mode == "Human vs AI":
+            turn_label = "👤 Your turn (Black)" if t == 1 else "🤖 AI thinking..."
         else:
-            turn_label = f"🤖 IA 1 (Pretas) a pensar..." if t == 1 else f"🤖 IA 2 (Brancas) a pensar..."
+            turn_label = f"🤖 AI 1 (Black) thinking..." if t == 1 else f"🤖 AI 2 (White) thinking..."
             
     st.subheader(turn_label)
     
@@ -211,7 +214,7 @@ with col2:
     </style>
     """, unsafe_allow_html=True)
 
-    disable_interaction = st.session_state.game_over or (match_mode == "IA vs IA") or (match_mode == "Humano vs IA" and st.session_state.turn == 2)
+    disable_interaction = st.session_state.game_over or (match_mode == "AI vs AI") or (match_mode == "Human vs AI" and st.session_state.turn == 2)
 
     for r in range(15):
         cols = st.columns(15, gap="small")
@@ -235,19 +238,19 @@ with col2:
                 st.rerun()
 
     if not st.session_state.game_over:
-        if match_mode == "Humano vs IA" and st.session_state.turn == 2:
+        if match_mode == "Human vs AI" and st.session_state.turn == 2:
             time.sleep(0.1)
             ai_move_logic(game_mode, agent2, 2)
             st.rerun()
             
-        elif match_mode == "IA vs IA":
+        elif match_mode == "AI vs AI":
             if auto_play:
                 time.sleep(sleep_time)
                 current_agent = agent1 if st.session_state.turn == 1 else agent2
                 ai_move_logic(game_mode, current_agent, st.session_state.turn)
                 st.rerun()
             else:
-                if st.button("▶️ Fazer Jogada IA"):
+                if st.button("▶️ Make AI Move"):
                     current_agent = agent1 if st.session_state.turn == 1 else agent2
                     ai_move_logic(game_mode, current_agent, st.session_state.turn)
                     st.rerun()
