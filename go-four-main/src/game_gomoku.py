@@ -1,5 +1,5 @@
 """
-Implementação Gomoku
+Gomoku Implementation
 """
 import numpy as np
 from .game_engine import check_win_gomoku, get_legal_moves_gomoku
@@ -14,14 +14,14 @@ class GomokuGame:
         self.move_history = []
         
     def reset(self):
-        """Reseta o jogo"""
+        """Resets the game."""
         self.board = np.zeros((self.board_size, self.board_size), dtype=np.int8)
         self.current_player = 1
         self.winner = None
         self.move_history = []
         
     def is_valid_move(self, row, col):
-        """Verifica se um movimento é válido"""
+        """Checks if a move is valid."""
         if row < 0 or row >= self.board_size or col < 0 or col >= self.board_size:
             return False
         return self.board[row, col] == 0
@@ -38,6 +38,10 @@ class GomokuGame:
         return get_legal_moves_gomoku(self.board)
     
     def make_move(self, row, col):
+        """
+        Attempts to make a move at (row, col).
+        Returns True if successful, False otherwise.
+        """
         if not self.is_valid_move(row, col):
             return False
         
@@ -66,6 +70,11 @@ class GomokuGame:
         return self.board.copy()
     
     def get_board_for_player(self, player):
+        """
+        Returns the board from the perspective of 'player'.
+        If player is 2 (White), swaps 1s and 2s so the neural network
+        always sees 'self' as 1.
+        """
         if player == 1:
             return self.board.copy()
         else:
