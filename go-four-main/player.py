@@ -1,11 +1,11 @@
 """
-Player AlphaZero - Corrigido para competição
+AlphaZero Player - Adjusted for competition
 - Board: 15x15
-- Usa models/gomoku_model_best.pth e models/pente_model_best.pth
-- MCTS com PUCT + integração de tactical patterns como priors
-- Timeout por jogada. Se timeout/erro => fallback legal
-- Caching da árvore entre jogadas (update_root)
-- Compatível com play.py oficial (set_player_ind, get_name)
+- Uses models/gomoku_model_best.pth and models/pente_model_best.pth
+- MCTS with PUCT + integration of tactical patterns as priors
+- Timeout per move. If timeout/error => legal fallback
+- Tree caching between moves (update_root)
+- Compatible with official play.py (set_player_ind, get_name)
 """
 
 from __future__ import annotations
@@ -14,8 +14,12 @@ import math
 import random
 import os
 import sys
+import logging
 from typing import Tuple, Optional, Dict, List
 import numpy as np
+
+# Configure basic logging
+logger = logging.getLogger(__name__)
 
 try:
     import torch
@@ -41,9 +45,9 @@ def board_to_planes(board: List[List[int]], me: int, rules: str = "gomoku",
                    my_captures: int = 0, opp_captures: int = 0, 
                    last_move: Optional[Tuple[int,int]] = None) -> np.ndarray:
     """
-    Gera o tensor de entrada para a rede neural.
-    - Gomoku: 3 canais (Me, Opp, LastMove)
-    - Pente: 5 canais (Me, Opp, LastMove, MyCaptures, OppCaptures)
+    Generates the input tensor for the neural network.
+    - Gomoku: 3 channels (Me, Opp, LastMove)
+    - Pente: 5 channels (Me, Opp, LastMove, MyCaptures, OppCaptures)
     """
     board = np.asarray(board, dtype=np.int8)
 
@@ -82,14 +86,14 @@ class MCTSNode:
 class Player:
     def __init__(self, rules: str = "gomoku", board_size: int = BOARD_SIZE):
         """
-        Regras: "gomoku" ou "pente"
+        Rules: "gomoku" or "pente"
         board_size: 15
         """
         self.rules = rules.lower()
         self.board_size = board_size
         
         assert self.board_size == BOARD_SIZE, \
-            f"Modelo treinado em {BOARD_SIZE}x{BOARD_SIZE}"
+            f"Model trained on {BOARD_SIZE}x{BOARD_SIZE}"
         
         self.me = 1 
         self.name = f"AlphaZero_Player_{self.rules}_{self.board_size}"
@@ -121,12 +125,12 @@ class Player:
                     spec.loader.exec_module(tactical)
                     if hasattr(tactical, "get_priors"):
                         self.tactical_fn = tactical.get_priors
-                        print(f"[Player] Táticas carregadas de: {tactical_path}")
+                        logger.info(f"[Player] Tactics loaded from: {tactical_path}")
             else:
-                print("[Player] Ficheiro tactical_patterns_v2.py não encontrado!")
+                logger.warning("[Player] tactical_patterns_v2.py file not found!")
 
         except Exception as e:
-            print(f"[Player] Erro ao carregar táticas: {e}")
+            logger.error(f"[Player] Error loading tactics: {e}")
 
     def get_name(self):
         return self.name
@@ -137,9 +141,9 @@ class Player:
 
     def count_captures_from_board(self, board: List[List[int]]) -> Tuple[int, int]:
         """
-        Conta capturas do Pente analisando o tabuleiro.
-        Retorna (my_captures, opp_captures).
-        Para Gomoku retorna (0, 0).
+        Counts Pente captures by analyzing the board.
+        Returns (my_captures, opp_captures).
+        For Gomoku it returns (0, 0).
         """
         if self.rules != 'pente':
             return 0, 0
@@ -164,8 +168,8 @@ class Player:
 
     def apply_capture_sim(self, board: List[List[int]], r: int, c: int, player: int):
         """
-        Remove pedras capturadas no tabuleiro de simulação.
-        Funciona com List[List[int]].
+        Removes captured stones on the simulation board.
+        Works with List[List[int]].
         """
         n = self.board_size
         opp = 3 - player
@@ -184,14 +188,14 @@ class Player:
 
     def load_model_once(self):
         if not TORCH_AVAILABLE:
-            print("[player.py] torch não disponivel — random player", file=sys.stderr)
+            logger.warning("[Player] Torch not available — fallback to random player")
             return
         model_file = MODEL_PATHS.get(self.rules)
         if model_file is None:
-            print(f"[player.py] no model path for rules={self.rules}", file=sys.stderr)
+            logger.warning(f"[Player] No model path for rules={self.rules}")
             return
         if not os.path.exists(model_file):
-            print(f"[player.py] model file {model_file} not found — fallback to random", file=sys.stderr)
+            logger.warning(f"[Player] Model file {model_file} not found — fallback to random")
             return
         try:
             loaded = torch.load(model_file, map_location=self.device)
@@ -215,26 +219,26 @@ class Player:
                         net.to(self.device)
                         net.eval()
                         self.model = net
-                        print(f"[player.py] Model carregado de {model_file} ({num_input_channels} channels)", file=sys.stderr)
+                        logger.info(f"[Player] Model loaded from {model_file} ({num_input_channels} channels)")
                     except Exception as e:
-                        print(f"[player.py] Erro ao carregar modelo: {e}", file=sys.stderr)
+                        logger.error(f"[Player] Error loading model: {e}")
                         self.model = None
                 else:
-                    print("[player.py] Could not find state_dict in checkpoint", file=sys.stderr)
+                    logger.error("[Player] Could not find state_dict in checkpoint")
                     self.model = None
             elif hasattr(loaded, "state_dict") and hasattr(loaded, "forward"):
                 self.model = loaded
                 self.model.to(self.device)
                 self.model.eval()
-                print(f"[player.py] Modelo completo carregado de {model_file}", file=sys.stderr)
+                logger.info(f"[Player] Complete model loaded from {model_file}")
             else:
-                print("[player.py] Formato desconhecido", file=sys.stderr)
+                logger.error("[Player] Unknown format")
                 self.model = None
             
             if self.model is None:
-                print("[player.py] Could not construct model from checkpoint — fallback to policy heuristics", file=sys.stderr)
+                logger.warning("[Player] Could not construct model from checkpoint — fallback to policy heuristics")
         except Exception as e:
-            print(f"[player.py] error loading model: {e}", file=sys.stderr)
+            logger.error(f"[Player] Error loading model: {e}")
             self.model = None
 
     def model_infer(self, board: List[List[int]]) -> Tuple[np.ndarray, float]:
@@ -289,7 +293,7 @@ class Player:
                 val = float(value_t.squeeze(0).cpu().numpy().reshape(-1)[0])
                 return probs.astype(np.float32), max(-1.0, min(1.0, val))
         except Exception as e:
-            print("[player.py] model_infer error:", e, file=sys.stderr)
+            logger.error(f"[Player] model_infer error: {e}")
             p = np.zeros(n*n, dtype=np.float32)
             for (r,c) in legal:
                 p[r*n + c] = 1.0
@@ -351,7 +355,7 @@ class Player:
 
     def simulate(self, root_board: List[List[int]], time_limit: float, cpuct: float = 1.0):
         """
-        Executa simulações MCTS até o tempo limite..
+        Executes MCTS simulations until the time limit is reached.
         """
         n = self.board_size
         while time.time() < time_limit:
@@ -418,7 +422,8 @@ class Player:
         try:
             self.simulate(self.tree_state_board, time_limit=time_limit, cpuct=1.2)
         except Exception as e:
-            print("[player.py] simulate error:", e, file=sys.stderr)
+            logger.error(f"[Player] simulate error: {e}")
+            
         best_move = None
         best_N = -1
         for mv, child in self.mcts_root.children.items():
@@ -428,6 +433,7 @@ class Player:
             if child.N > best_N:
                 best_N = child.N
                 best_move = mv
+                
         if best_move is None:
             center = self.board_size // 2
             legal_arr = np.array(legal)
@@ -438,8 +444,8 @@ class Player:
 
     def play(self, board: List[List[int]], turn_number: int = 0, last_opponent_move: Optional[Tuple[int,int]] = None) -> Tuple[int,int]:
         """
-        Chamado pelo motor para cada movimento.
-        Retorna (row,col).
+        Called by the engine for each move.
+        Returns (row, col).
         """
         try:
             if last_opponent_move is not None:
@@ -466,6 +472,7 @@ class Player:
             except Exception:
                 self.mcts_root = None
                 self.tree_state_board = None
+                
             r,c = move
             n = self.board_size
             if not (0 <= r < n and 0 <= c < n) or board[r][c] != 0:
