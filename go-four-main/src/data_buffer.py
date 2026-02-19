@@ -5,7 +5,7 @@ from collections import deque
 
 
 class ExperienceBuffer:
-    """Buffer para armazenar experiências de self-play"""
+    """Buffer to store self-play experiences."""
     
     def __init__(self, max_size=100000):
         self.buffer = deque(maxlen=max_size)
@@ -13,35 +13,35 @@ class ExperienceBuffer:
     
     def add_game(self, game_data):
         """
-        Adiciona experiências de um jogo completo
+        Adds experiences from a complete game.
         
-        Argumentos:
-            game_data: lista de tuplos (state, mcts_policy, player)
+        Args:
+            game_data: list of tuples (state, mcts_policy, player)
                 - state: numpy array (3, board_size, board_size)
-                - mcts_policy: numpy array (board_size * board_size) com distribuição MCTS
-                - player: int (1 ou 2) - jogador que fez a jogada
+                - mcts_policy: numpy array (board_size * board_size) with MCTS distribution
+                - player: int (1 or 2) - player who made the move
         """
         for experience in game_data:
             self.buffer.append(experience)
     
     def add_experience(self, state, policy, value):
         """
-        Adiciona uma experiência individual
+        Adds an individual experience.
         
-        Argumentos:
+        Args:
             state: numpy array (3, board_size, board_size)
-            policy: numpy array (board_size * board_size) - distribuição alvo
-            value: float em [-1, 1] - valor alvo
+            policy: numpy array (board_size * board_size) - target distribution
+            value: float in [-1, 1] - target value
         """
         self.buffer.append((state, policy, value))
     
     def process_game(self, game_states, winner):
         """
-        Processa um jogo completo e adiciona ao buffer com valores corretos
+        Processes a complete game and adds it to the buffer with correct values.
         
-        Argumentos:
-            game_states: lista de tuplos (state, mcts_policy, player)
-            winner: int (1, 2, ou 0 para empate)
+        Args:
+            game_states: list of tuples (state, mcts_policy, player)
+            winner: int (1, 2, or 0 for a draw)
         """
         for state, policy, player in game_states:
             if winner == 0:
@@ -55,10 +55,10 @@ class ExperienceBuffer:
     
     def sample(self, batch_size):
         """
-        Amostra exemplo(batch) aleatório de experiências
+        Samples a random batch of experiences.
         
-        Argumentos:
-            batch_size: número de experiências a amostrar
+        Args:
+            batch_size: number of experiences to sample
         
         Returns:
             states: numpy array (batch_size, 3, board_size, board_size)
@@ -88,7 +88,7 @@ class ExperienceBuffer:
     
     def get_all(self):
         """
-        Retorna todas as experiências do buffer
+        Returns all experiences from the buffer.
         
         Returns:
             states, policies, values: numpy arrays
@@ -112,34 +112,34 @@ class ExperienceBuffer:
         )
     
     def save(self, filename):
-        """Salva buffer em disco"""
+        """Saves the buffer to disk."""
         with open(filename, 'wb') as f:
             pickle.dump(list(self.buffer), f)
-        print(f"Buffer salvo: {filename} ({len(self.buffer)} experiências)")
+        print(f"Buffer saved: {filename} ({len(self.buffer)} experiences)")
     
     def load(self, filename):
-        """Carrega buffer do disco"""
+        """Loads the buffer from disk."""
         if not os.path.exists(filename):
-            print(f"Arquivo não encontrado: {filename}")
+            print(f"File not found: {filename}")
             return
         
         with open(filename, 'rb') as f:
             data = pickle.load(f)
             self.buffer = deque(data, maxlen=self.max_size)
-        print(f"Buffer carregado: {filename} ({len(self.buffer)} experiências)")
+        print(f"Buffer loaded: {filename} ({len(self.buffer)} experiences)")
     
     def clear(self):
-        """Limpa o buffer"""
+        """Clears the buffer."""
         self.buffer.clear()
     
     def __len__(self):
-        """Retorna o número de experiências no buffer"""
+        """Returns the number of experiences in the buffer."""
         return len(self.buffer)
     
     def stats(self):
-        """Retorna estatísticas do buffer"""
+        """Returns buffer statistics."""
         if len(self.buffer) == 0:
-            return "Buffer vazio"
+            return "Empty buffer"
         
         values = [exp[2] for exp in self.buffer]
         
@@ -156,19 +156,19 @@ class ExperienceBuffer:
 
 class AugmentedBuffer(ExperienceBuffer):
     """
-    Buffer com data augmentation (rotações e reflexões)
-    Aumenta dataset 8x (4 rotações × 2 reflexões)
+    Buffer with data augmentation (rotations and reflections).
+    Increases the dataset 8x (4 rotations x 2 reflections).
     """
     
     def add_experience_with_augmentation(self, state, policy, value, board_size=15):
         """
-        Adiciona experiência com todas as transformações simétricas
+        Adds an experience with all symmetric transformations.
         
-        Argumentos:
+        Args:
             state: numpy array (3, board_size, board_size)
             policy: numpy array (board_size * board_size)
             value: float
-            board_size: tamanho do tabuleiro
+            board_size: board size
         """
         policy_2d = policy.reshape(board_size, board_size)
         for k in range(4):
@@ -187,12 +187,12 @@ class AugmentedBuffer(ExperienceBuffer):
     
     def process_game_with_augmentation(self, game_states, winner, board_size=15):
         """
-        Processa jogo com data augmentation
+        Processes a game with data augmentation.
         
-        Argumentos:
-            game_states: lista de tuplos (state, mcts_policy, player)
-            winner: int (1, 2, ou 0)
-            board_size: tamanho do tabuleiro
+        Args:
+            game_states: list of tuples (state, mcts_policy, player)
+            winner: int (1, 2, or 0)
+            board_size: board size
         """
         for state, policy, player in game_states:
             if winner == 0:
@@ -203,38 +203,3 @@ class AugmentedBuffer(ExperienceBuffer):
                 value = -1.0
             
             self.add_experience_with_augmentation(state, policy, value, board_size)
-
-
-if __name__ == "__main__":
-    print("Testando ExperienceBuffer...")
-    
-    buffer = ExperienceBuffer(max_size=1000)
-    
-    board_size = 15
-    for i in range(10):
-        state = np.random.randn(3, board_size, board_size).astype(np.float32)
-        policy = np.random.rand(board_size * board_size).astype(np.float32)
-        policy = policy / policy.sum()
-        value = np.random.uniform(-1, 1)
-        
-        buffer.add_experience(state, policy, value)
-    
-    print(f"Buffer size: {len(buffer)}")
-    
-    states, policies, values = buffer.sample(5)
-    print(f"Batch shapes: {states.shape}, {policies.shape}, {values.shape}")
-    print(f"Policy sum: {policies.sum(axis=1)}")
-    
-    print(f"Stats: {buffer.stats()}")
-
-    print("\nTestando AugmentedBuffer...")
-    aug_buffer = AugmentedBuffer(max_size=10000)
-    
-    state = np.random.randn(3, 15, 15).astype(np.float32)
-    policy = np.random.rand(15 * 15).astype(np.float32)
-    policy = policy / policy.sum()
-    
-    aug_buffer.add_experience_with_augmentation(state, policy, 1.0, board_size=15)
-    print(f"Augmented buffer size: {len(aug_buffer)}")
-    
-    print("\n Buffer de experiências criado com sucesso!")
