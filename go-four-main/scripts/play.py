@@ -1,5 +1,5 @@
 """
-Main game runner – corre partidas entre diferentes agentes.
+Main game runner – runs matches between different agents.
 """
 import sys
 import os
@@ -16,14 +16,14 @@ from src.game_pente import PenteGame
 
 def load_player(filepath, player_number):
     """
-    Carrega dinamicamente uma classe Player de um ficheiro Python.
+    Dynamically loads a Player class from a Python file.
 
     Args:
-        filepath: caminho para o ficheiro do jogador
-        player_number: 1 ou 2
+        filepath: path to the player file
+        player_number: 1 or 2
 
     Returns:
-        Classe Player definida no ficheiro.
+        Player class defined in the file.
     """
     try:
         spec = importlib.util.spec_from_file_location(f"player{player_number}", filepath)
@@ -37,18 +37,17 @@ def load_player(filepath, player_number):
 
 def play_game(player1_file, player2_file, game_type='gomoku', display=True, timeout=5.0):
     """
-    Executa uma partida entre dois jogadores.
+    Executes a match between two players.
 
     Args:
-        player1_file: caminho para o ficheiro do jogador 1
-        player2_file: caminho para o ficheiro do jogador 2
-        game_type: 'gomoku' ou 'pente'
-        display: se deve mostrar o tabuleiro no terminal
-        timeout: limite de tempo por jogada, em segundos
+        player1_file: path to player 1's file
+        player2_file: path to player 2's file
+        game_type: 'gomoku' or 'pente'
+        display: whether to show the board in the terminal
+        timeout: time limit per move, in seconds
 
     Returns:
-        winner: 1 ou 2 se houver vencedor, 0 em caso de empate, -1 em caso de erro
-
+        winner: 1 or 2 if there's a winner, 0 for a draw, -1 in case of an error
     """
     Player1Class = load_player(player1_file, 1)
     Player2Class = load_player(player2_file, 2)
@@ -154,16 +153,15 @@ def play_game(player1_file, player2_file, game_type='gomoku', display=True, time
 
 
 def main():
-    """Ponto de entrada principal do script.
+    """
+    Main entry point of the script.
     
-    Lê os argumentos da linha de comando, define:
-      - qual o ficheiro de cada jogador,
-      - o tipo de jogo (gomoku ou pente),
-      - se o tabuleiro é mostrado ou não,
+    Reads command-line arguments and sets:
+      - the file for each player,
+      - the game type (gomoku or pente),
+      - whether the board is displayed or not,
 
-    e depois chama `play_game` para executar uma única partida entre os dois agentes.
-    
-    
+    and then calls `play_game` to execute a single match between the two agents.
     """
     if len(sys.argv) < 3:
         print("Usage: python play.py <player1.py> <player2.py> [--game gomoku|pente] [--display] [--nodisplay]")
