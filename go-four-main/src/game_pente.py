@@ -1,5 +1,5 @@
 """
-Implementação Pente
+Pente Implementation
 """
 import numpy as np
 from .game_engine import (
@@ -21,7 +21,7 @@ class PenteGame:
         self.captures = {1: 0, 2: 0}
         
     def reset(self):
-        """Reseta o jogo"""
+        """Resets the game."""
         self.board = np.zeros((self.board_size, self.board_size), dtype=np.int8)
         self.current_player = 1
         self.winner = None
@@ -29,7 +29,7 @@ class PenteGame:
         self.captures = {1: 0, 2: 0}
         
     def is_valid_move(self, row, col):
-        """Verifica se um movimento é válido"""
+        """Checks if a move is valid."""
         if row < 0 or row >= self.board_size or col < 0 or col >= self.board_size:
             return False
         return self.board[row, col] == 0
