@@ -1,6 +1,6 @@
 """
-Motor de Jogo - Gomoku & Pente
-Funções otimizadas com Numba @njit
+Game Engine - Gomoku & Pente
+Numba @njit optimized functions
 """
 
 import numpy as np
@@ -11,13 +11,13 @@ import math
 @njit(cache=True)
 def check_win_gomoku(board):
     """
-    Verifica vencedor no Gomoku (5 ou mais em linha)
+    Checks for a winner in Gomoku (5 or more in a row).
     
-    Argumentos:
-        board: numpy array (board_size, board_size) com 0/1/2
+    Args:
+        board: numpy array (board_size, board_size) with 0/1/2
     
     Returns:
-        0 (sem vencedor), 1 (jogador 1), 2 (jogador 2)
+        0 (no winner), 1 (player 1), 2 (player 2)
     """
     board_size = board.shape[0]
     for row in range(board_size):
@@ -49,14 +49,14 @@ def check_win_gomoku(board):
 @njit(cache=True)
 def get_legal_moves_gomoku(board, distance=2):
     """
-    Retorna movimentos legais perto de pedras existentes (otimização)
+    Returns legal moves near existing stones (optimization).
     
-    Argumentos:
-        board: tabuleiro
-        distance: distância máxima de pedras existentes
+    Args:
+        board: game board
+        distance: maximum distance from existing stones
     
     Returns:
-        lista de (row, col)
+        list of (row, col)
     """
     board_size = board.shape[0]
     moves = []
@@ -91,10 +91,10 @@ def get_legal_moves_gomoku(board, distance=2):
 @njit(cache=True)
 def detect_winning_move_gomoku(board, player):
     """
-    Deteta jogadas que ganham imediatamente para o jogador
+    Detects moves that immediately win for the player.
     
     Returns:
-        lista de (row, col) que resultam em vitória
+        list of (row, col) that result in victory
     """
     board_size = board.shape[0]
     winning_moves = []
@@ -138,18 +138,18 @@ def detect_winning_move_gomoku(board, player):
 @njit(cache=True)
 def detect_winning_move_pente(board, player, current_captures):
     """
-    Deteta jogadas que ganham imediatamente para o jogador (Pente)
-    Considera:
-    1. 5 em linha
-    2. Captura que leva a 10+ peças capturadas
+    Detects moves that immediately win for the player (Pente).
+    Considers:
+    1. 5 in a row
+    2. Capture that leads to 10+ captured stones
     
-    Argumentos:
-        board: tabuleiro atual
-        player: jogador (1 ou 2)
-        current_captures: número atual de peças já capturadas por este jogador
+    Args:
+        board: current board
+        player: player (1 or 2)
+        current_captures: current number of stones already captured by this player
     
     Returns:
-        lista de (row, col) que resultam em vitória
+        list of (row, col) that result in victory
     """
     board_size = board.shape[0]
     winning_moves = []
@@ -198,7 +198,7 @@ def detect_winning_move_pente(board, player, current_captures):
 @njit(cache=True)
 def detect_open_four_gomoku(board, row, col, player, board_size):
     """
-    Deteta se jogada cria 4 seguidas com ambos os lados abertos
+    Detects if a move creates 4 in a row with both ends open.
     
     Returns:
         bool
@@ -235,11 +235,11 @@ def detect_open_four_gomoku(board, row, col, player, board_size):
 @njit(cache=True)
 def check_win_pente(board):
     """
-    Verifica vencedor no Pente (5 ou mais em linha)
-    Idêntico ao Gomoku para vitória por linha
+    Checks for a winner in Pente (5 or more in a row).
+    Identical to Gomoku for line victory.
     
     Returns:
-        0 (sem vencedor), 1 (jogador 1), 2 (jogador 2)
+        0 (no winner), 1 (player 1), 2 (player 2)
     """
     return check_win_gomoku(board)
 
@@ -247,14 +247,14 @@ def check_win_pente(board):
 @njit(cache=True)
 def detect_capture_pente(board, row, col):
     """
-    Detecta quantas pedras seriam capturadas ao jogar em (row, col)
+    Detects how many stones would be captured by playing at (row, col).
     
-    Argumentos:
-        board: tabuleiro
-        row, col: posição da jogada
+    Args:
+        board: game board
+        row, col: move position
     
     Returns:
-        int: número de pedras capturadas (0, 2, 4, 6, ou 8)
+        int: number of captured stones (0, 2, 4, 6, or 8)
     """
     board_size = board.shape[0]
     player = board[row, col]
@@ -294,15 +294,15 @@ def detect_capture_pente(board, row, col):
 @njit(cache=True)
 def apply_capture_pente(board, row, col):
     """
-    Aplica capturas no tabuleiro após colocar pedra em (row, col)
-    Remove pedras capturadas
+    Applies captures to the board after placing a stone at (row, col).
+    Removes captured stones.
     
-    Argumentos:
-        board: tabuleiro
-        row, col: posição da jogada
+    Args:
+        board: game board
+        row, col: move position
     
     Returns:
-        int: número de pedras capturadas
+        int: number of captured stones
     """
     board_size = board.shape[0]
     player = board[row, col]
@@ -339,10 +339,10 @@ def apply_capture_pente(board, row, col):
 @njit(cache=True)
 def detect_capture_moves_pente(board, player):
     """
-    Deteta todas as jogadas que resultariam em capturas
+    Detects all moves that would result in captures.
     
     Returns:
-        lista de (row, col, num_captures)
+        list of (row, col, num_captures)
     """
     board_size = board.shape[0]
     opponent = 3 - player
@@ -382,10 +382,10 @@ def detect_capture_moves_pente(board, player):
 @njit(cache=True)
 def check_win_by_capture(captures_p1, captures_p2):
     """
-    Verifica vitória por captura (10+ pedras capturadas)
+    Checks for win by capture (10+ captured stones).
     
     Returns:
-        0 (sem vencedor), 1 (jogador 1), 2 (jogador 2)
+        0 (no winner), 1 (player 1), 2 (player 2)
     """
     if captures_p1 >= 10:
         return 1
@@ -397,11 +397,11 @@ def check_win_by_capture(captures_p1, captures_p2):
 @njit(cache=True)
 def get_legal_moves_pente(board, distance=2):
     """
-    Movimentos legais para Pente (idêntico ao Gomoku)
-    Considera espaços criados por capturas
+    Legal moves for Pente (identical to Gomoku).
+    Considers spaces created by captures.
     
     Returns:
-        lista de (row, col)
+        list of (row, col)
     """
     return get_legal_moves_gomoku(board, distance)
 
@@ -409,10 +409,10 @@ def get_legal_moves_pente(board, distance=2):
 @njit(cache=True)
 def check_line_length(board, row, col, dr, dc, player, board_size):
     """
-    Conta comprimento de linha numa direção específica
+    Counts line length in a specific direction.
     
     Returns:
-        int: comprimento da linha
+        int: line length
     """
     count = 1
     
@@ -434,7 +434,7 @@ def check_line_length(board, row, col, dr, dc, player, board_size):
 @njit(cache=True)
 def is_board_full(board, board_size):
     """
-    Verifica se tabuleiro está cheio (empate)
+    Checks if the board is full (draw).
     
     Returns:
         bool
@@ -445,53 +445,9 @@ def is_board_full(board, board_size):
 @njit(cache=True)
 def count_pieces(board, player):
     """
-    Conta quantas pedras um jogador tem no tabuleiro
+    Counts how many stones a player has on the board.
     
     Returns:
         int
     """
     return np.sum(board == player)
-
-
-
-
-if __name__ == "__main__":
-    board_size = 15
-    
-    print("\n[GOMOKU] Teste 1: Vitória por 5 em linha")
-    board = np.zeros((board_size, board_size), dtype=np.int32)
-    board[7, 5:10] = 1  # 5 em linha horizontal
-    winner = check_win_gomoku(board)
-    print(f"  Resultado: {winner} (esperado: 1) {'OK' if winner == 1 else 'ERRO'}")
-    
-    print("\n[GOMOKU] Teste 2: Detectar jogada vencedora")
-    board = np.zeros((board_size, board_size), dtype=np.int32)
-    board[7, 5:9] = 1  # 4 em linha
-    winning_moves = detect_winning_move_gomoku(board, 1)
-    print(f"  Jogadas vencedoras: {winning_moves}")
-    print(f"  Contém (7,4) ou (7,9)? {(7,4) in winning_moves or (7,9) in winning_moves} OK")
-    
-    print("\n[PENTE] Teste 3: Detectar captura")
-    board = np.zeros((board_size, board_size), dtype=np.int32)
-    board[7, 7] = 1 
-    board[7, 8] = 2   
-    board[7, 9] = 2   
-    board[7, 10] = 1  
-    
-    captured = detect_capture_pente(board, 7, 10)
-    print(f"  Pedras detectadas para captura: {captured} (esperado: 2) {'OK' if captured == 2 else 'ERRO'}")
-    
-    print("\n[PENTE] Teste 4: Aplicar captura")
-    board_before = board.copy()
-    captured = apply_capture_pente(board, 7, 10)
-    print(f"  Pedras capturadas: {captured}")
-    print(f"  Posição (7,8) antes: {board_before[7,8]}, depois: {board[7,8]} {'OK' if board[7,8] == 0 else 'ERRO'}")
-    print(f"  Posição (7,9) antes: {board_before[7,9]}, depois: {board[7,9]} {'OK' if board[7,9] == 0 else 'ERRO'}")
-    
-    print("\n[PENTE] Teste 5: Vitória por captura")
-    winner = check_win_by_capture(10, 4)
-    print(f"  P1 com 10 capturas: {winner} (esperado: 1) {'OK' if winner == 1 else 'ERRO'}")
-    
-    winner = check_win_by_capture(6, 12)
-    print(f"  P2 com 12 capturas: {winner} (esperado: 2) {'OK' if winner == 2 else 'ERRO'}")
-    
