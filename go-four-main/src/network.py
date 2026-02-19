@@ -1,6 +1,6 @@
 """
-Rede Neural AlphaZero para Gomoku/Pente
-Arquitetura: ResNet com Policy e Value heads
+AlphaZero Neural Network for Gomoku/Pente
+Architecture: ResNet with Policy and Value heads
 """
 
 import torch
@@ -10,7 +10,7 @@ import numpy as np
 
 
 class ResidualBlock(nn.Module):
-    """Bloco residual com 2 convoluções e skip connection"""
+    """Residual block with 2 convolutions and a skip connection."""
     
     def __init__(self, num_filters):
         super(ResidualBlock, self).__init__()
@@ -30,22 +30,22 @@ class ResidualBlock(nn.Module):
 
 class GomokuNet(nn.Module):
     """
-    Rede Neural AlphaZero para Gomoku/Pente
+    AlphaZero Neural Network for Gomoku/Pente
     
-    Entrada: tensor (batch, num_input_channels, board_size, board_size)
-        GOMOKU (3 canais):
-        - Canal 0: posições do jogador atual
-        - Canal 1: posições do adversário
-        - Canal 2: última jogada
+    Input: tensor (batch, num_input_channels, board_size, board_size)
+        GOMOKU (3 channels):
+        - Channel 0: current player's positions
+        - Channel 1: opponent's positions
+        - Channel 2: last move
         
-        PENTE (5 canais):
-        - Canais 0-2: igual Gomoku
-        - Canal 3: capturas do jogador atual (normalizado 0-1)
-        - Canal 4: capturas do adversário (normalizado 0-1)
+        PENTE (5 channels):
+        - Channels 0-2: same as Gomoku
+        - Channel 3: current player's captures (normalized 0-1)
+        - Channel 4: opponent's captures (normalized 0-1)
     
-    Saída:
-        - policy: probabilidades para cada ação (batch, board_size * board_size)
-        - value: avaliação da posição (batch, 1) em [-1, 1]
+    Output:
+        - policy: probabilities for each action (batch, board_size * board_size)
+        - value: position evaluation (batch, 1) in [-1, 1]
     """
     
     def __init__(self, board_size=15, num_filters=64, num_blocks=4, num_input_channels=3):
@@ -73,27 +73,24 @@ class GomokuNet(nn.Module):
         """
         Forward pass
         
-        Argumentos:
-            x: tensor (batch, 3, board_size, board_size)
+        Args:
+            x: tensor (batch, 3 or 5, board_size, board_size)
         
         Returns:
-            policy: tensor (batch, board_size * board_size) com log-probabilidades
-            value: tensor (batch, 1) em [-1, 1]
+            policy: tensor (batch, board_size * board_size) with log-probabilities
+            value: tensor (batch, 1) in [-1, 1]
         """
 
         x = F.relu(self.bn_input(self.conv_input(x)))
         
-
         for block in self.res_blocks:
             x = block(x)
         
-
         policy = F.relu(self.policy_bn(self.policy_conv(x)))
         policy = policy.view(policy.size(0), -1)
         policy = self.policy_fc(policy)
         policy = F.log_softmax(policy, dim=1)
         
-
         value = F.relu(self.value_bn(self.value_conv(x)))
         value = value.view(value.size(0), -1)
         value = F.relu(self.value_fc1(value))
@@ -103,14 +100,14 @@ class GomokuNet(nn.Module):
     
     def predict(self, board_state):
         """
-        Predição para um único estado
+        Prediction for a single state.
         
-        Argumentos:
-            board_state: numpy array (3, board_size, board_size)
+        Args:
+            board_state: numpy array (num_input_channels, board_size, board_size)
         
         Returns:
-            policy_probs: numpy array (board_size * board_size) com probabilidades
-            value: float em [-1, 1]
+            policy_probs: numpy array (board_size * board_size) with probabilities
+            value: float in [-1, 1]
         """
         self.eval()
         with torch.no_grad():
@@ -127,25 +124,24 @@ class GomokuNet(nn.Module):
 def board_to_tensor(board, current_player, last_move=None, board_size=15, 
                     captures_p1=None, captures_p2=None):
     """
-    Converte tabuleiro numpy para tensor de entrada da rede
+    Converts a numpy board to the network's input tensor format.
     
     Args:
-        board: numpy array (board_size, board_size) com 0/1/2
-        current_player: int (1 ou 2) - jogador que vai jogar
-        last_move: tuple (row, col) ou None - última jogada do adversário
-        board_size: int - tamanho do tabuleiro
-        captures_p1: int ou None - capturas do jogador 1 (Pente). None = Gomoku
-        captures_p2: int ou None - capturas do jogador 2 (Pente). None = Gomoku
+        board: numpy array (board_size, board_size) with 0/1/2
+        current_player: int (1 or 2) - the player making the move
+        last_move: tuple (row, col) or None - opponent's last move
+        board_size: int - size of the board
+        captures_p1: int or None - player 1's captures (Pente). None = Gomoku
+        captures_p2: int or None - player 2's captures (Pente). None = Gomoku
     
     Returns:
-        tensor: numpy array (3 ou 5, board_size, board_size)
-            - Gomoku (captures_p1=None, captures_p2=None): 3 canais
-            - Pente (captures fornecidos): 5 canais
+        tensor: numpy array (3 or 5, board_size, board_size)
+            - Gomoku (captures_p1=None, captures_p2=None): 3 channels
+            - Pente (captures provided): 5 channels
     """
 
     has_captures = (captures_p1 is not None or captures_p2 is not None)
     
-
     if has_captures:
         captures_p1 = captures_p1 if captures_p1 is not None else 0
         captures_p2 = captures_p2 if captures_p2 is not None else 0
@@ -164,7 +160,6 @@ def board_to_tensor(board, current_player, last_move=None, board_size=15,
         if 0 <= row < board_size and 0 <= col < board_size:
             tensor[2, row, col] = 1.0
     
-
     if has_captures:
         my_captures = captures_p1 if current_player == 1 else captures_p2
         opp_captures = captures_p2 if current_player == 1 else captures_p1
@@ -177,22 +172,22 @@ def board_to_tensor(board, current_player, last_move=None, board_size=15,
 
 def create_network(board_size=15, num_filters=64, num_blocks=4, num_input_channels=3):
     """
-    Factory function para criar rede neural
+    Factory function to create the neural network.
     
-    Argumentos:
-        board_size: tamanho do tabuleiro
-        num_filters: número de filtros nas convoluções
-        num_blocks: número de blocos residuais
-        num_input_channels: número de canais de entrada
+    Args:
+        board_size: size of the board
+        num_filters: number of filters in the convolutions
+        num_blocks: number of residual blocks
+        num_input_channels: number of input channels
     
     Returns:
-        GomokuNet: rede neural
+        GomokuNet: instantiated neural network
     """
     return GomokuNet(board_size, num_filters, num_blocks, num_input_channels)
 
 
 def save_checkpoint(model, optimizer, epoch, filename):
-    """Salva checkpoint do modelo"""
+    """Saves a model checkpoint."""
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
@@ -200,19 +195,19 @@ def save_checkpoint(model, optimizer, epoch, filename):
         'board_size': model.board_size,
     }
     torch.save(checkpoint, filename)
-    print(f"Checkpoint salvo: {filename}")
+    print(f"Checkpoint saved: {filename}")
 
 
 def load_checkpoint(filename, board_size=15, num_filters=64, num_blocks=4, num_input_channels=3):
     """
-    Carrega checkpoint do modelo
+    Loads a model checkpoint.
     
-    Argumentos:
-        filename: caminho do checkpoint
-        board_size: tamanho do tabuleiro
-        num_filters: filtros nas convoluções
-        num_blocks: blocos residuais
-        num_input_channels: número de canais (3 Gomoku, 5 Pente)
+    Args:
+        filename: path to the checkpoint
+        board_size: size of the board
+        num_filters: filters in the convolutions
+        num_blocks: residual blocks
+        num_input_channels: number of channels (3 for Gomoku, 5 for Pente)
     
     Returns:
         model, optimizer, epoch
@@ -232,34 +227,5 @@ def load_checkpoint(filename, board_size=15, num_filters=64, num_blocks=4, num_i
     
     epoch = checkpoint['epoch']
     
-    print(f"Checkpoint carregado: {filename} (época {epoch})")
+    print(f"Checkpoint loaded: {filename} (epoch {epoch})")
     return model, optimizer, epoch
-
-
-if __name__ == "__main__":
-    print("Testando GomokuNet...")
-    
-    net = create_network(board_size=15, num_filters=64, num_blocks=4)
-    print(f"Parâmetros da rede: {sum(p.numel() for p in net.parameters()):,}")
-    
-    batch_size = 4
-    board_size = 15
-    x = torch.randn(batch_size, 3, board_size, board_size)
-    
-    log_policy, value = net(x)
-    print(f"Policy shape: {log_policy.shape}")
-    print(f"Value shape: {value.shape}")
-    print(f"Value range: [{value.min().item():.3f}, {value.max().item():.3f}]")
- 
-    board = np.zeros((15, 15), dtype=np.int32)
-    board[7, 7] = 1
-    board[7, 8] = 2
-    
-    state = board_to_tensor(board, current_player=1, last_move=(7, 8))
-    probs, val = net.predict(state)
-    
-    print(f"\nPredição para estado de teste:")
-    print(f"Policy probs sum: {probs.sum():.6f} (deve ser ~1.0)")
-    print(f"Value: {val:.3f}")
-    print(f"Top 5 ações: {np.argsort(probs)[-5:][::-1]}")
-
