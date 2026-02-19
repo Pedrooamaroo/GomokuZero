@@ -1,7 +1,7 @@
 import numpy as np
 from numba import njit
 
-SCORE_WIN_IMMEDIATE   = 100000.0
+SCORE_WIN_IMMEDIATE    = 100000.0
 SCORE_BLOCK_WIN        = 50000.0
 SCORE_OPEN_FOUR        = 10000.0
 SCORE_BLOCK_OPEN_4     = 9000.0
@@ -20,7 +20,7 @@ SCORE_AVOID_CAPTURE_STRONG = 4000.0
 
 @njit(cache=True)
 def check_window_15x15(board, row, col, dr, dc, player):
-    """Verifica padrões táticos em janelas 5x1 centradas em (row, col)."""
+    """Checks for tactical patterns in 5x1 windows centered at (row, col)."""
     consecutive = 1
     r, c = row + dr, col + dc
     while 0 <= r < 15 and 0 <= c < 15 and board[r, c] == player:
@@ -182,8 +182,8 @@ def get_tactical_scores_for_moves(board, player, legal_moves, is_pente, captures
 
 def get_priors(board, player, rules='gomoku'):
     """
-    Gera priors táticos.
-    Deteta automaticamente se é Pente pelo argumento 'rules' ou por defeito.
+    Generates tactical priors.
+    Automatically detects if it's Pente via the 'rules' argument or defaults.
     """
     board_np = np.asarray(board, dtype=np.int8)
     is_pente = (rules == 'pente')
