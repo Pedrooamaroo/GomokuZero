@@ -1,14 +1,14 @@
 """
-Script de Treino AlphaZero - Self-Play + Training Loop
+AlphaZero Training Script - Self-Play + Training Loop
 
-Executa ciclos de:
-  self-play com MCTS guiado pela rede neural
-  treino da rede com os dados gerados
+Executes cycles of:
+  - Self-play with Neural Network guided MCTS
+  - Network training using generated data
 
-Os modelos são guardados na pasta models/ com o nome:
+Models are saved in the models/ folder with the names:
   - gomoku_model_best.pth
   - pente_model_best.pth
-compatíveis com o player.py usado na competição.
+Compatible with the player.py used in competition.
 """
 
 import sys
@@ -31,7 +31,7 @@ try:
     TENSORBOARD_AVAILABLE = True
 except ImportError:
     TENSORBOARD_AVAILABLE = False
-    print("WARNING: TensorBoard nao disponivel. Instale com: pip install tensorboard")
+    print("WARNING: TensorBoard not available. Install with: pip install tensorboard")
 
 from src.network import create_network, save_checkpoint, load_checkpoint
 from src.data_buffer import AugmentedBuffer
@@ -42,13 +42,13 @@ from src.game_pente import PenteGame
 
 class AlphaZeroTrainer:
     """
-    Classe que gere o processo completo de treino do AlphaZero.
+    Manages the complete AlphaZero training process.
 
-    Responsabilidades principais:
-      - Gerar jogos de self-play com MCTS
-      - Guardar as experiências (buffer com data augmentation)
-      - Treinar a rede neural a partir do buffer
-      - Guardar checkpoints e o melhor modelo em models/
+    Main responsibilities:
+      - Generate self-play games using MCTS
+      - Store experiences (buffer with data augmentation)
+      - Train the neural network from the buffer
+      - Save checkpoints and the best model in models/
     """
     
     def __init__(self, 
@@ -60,15 +60,15 @@ class AlphaZeroTrainer:
                  game_type='gomoku'):
         
         """
-        Inicializa o treinador AlphaZero.
+        Initializes the AlphaZero trainer.
 
         Args:
-            board_size: tamanho do tabuleiro
-            num_filters: número de filtros nos blocos convolucionais
-            num_blocks: número de blocos residuais na rede
-            learning_rate: taxa de aprendizagem do otimizador
-            buffer_size: tamanho máximo do buffer de experiências
-            game_type: 'gomoku' ou 'pente'
+            board_size: size of the board
+            num_filters: number of filters in convolutional blocks
+            num_blocks: number of residual blocks in the network
+            learning_rate: optimizer learning rate
+            buffer_size: maximum size of the experience buffer
+            game_type: 'gomoku' or 'pente'
         """
 
         self.board_size = board_size
@@ -103,10 +103,10 @@ class AlphaZeroTrainer:
             self.writer = SummaryWriter(log_dir=log_dir)
             print(f"  TensorBoard logs: {log_dir}")
         
-        print(f"AlphaZero Trainer inicializado para {game_type.upper()}")
+        print(f"AlphaZero Trainer initialized for {game_type.upper()}")
     
     def load_checkpoint(self):
-        """Carrega o 'best' model anterior e o buffer se existirem"""
+        """Loads the previous 'best' model and buffer if they exist."""
         filename = os.path.join(self.models_dir, f"{self.game_type}_model_best.pth")
         if os.path.exists(filename):
             try:
@@ -117,38 +117,38 @@ class AlphaZeroTrainer:
                     num_blocks=self.num_blocks,
                     num_input_channels=self.num_input_channels
                 )
-                print(f"Checkpoint carregado: Iteração {self.iteration}")
+                print(f"Checkpoint loaded: Iteration {self.iteration}")
             except Exception as e:
-                print(f"Erro ao carregar checkpoint: {e}")
+                print(f"Error loading checkpoint: {e}")
                 return False
         
         buffer_path = os.path.join(self.models_dir, f"{self.game_type}_buffer.pkl")
         if os.path.exists(buffer_path):
             try:
                 self.buffer.load(buffer_path)
-                print(f"Buffer carregado: {len(self.buffer)} experiências recuperadas.")
+                print(f"Buffer loaded: {len(self.buffer)} experiences retrieved.")
             except Exception as e:
-                print(f"Não foi possível carregar o buffer (iniciando vazio): {e}")
+                print(f"Could not load buffer (starting empty): {e}")
         else:
-            print("ℹNenhum buffer encontrado. Iniciando vazio.")
+            print("ℹ No buffer found. Starting empty.")
 
         return True
     
     def self_play(self, num_games=100, time_limit=5.0, temperature_threshold=15):
         """
-        Gera jogos de self-play e preenche o buffer com experiências.
+        Generates self-play games and fills the buffer with experiences.
 
         Args:
-            num_games: número de jogos de self-play a gerar
-            time_limit: limite de tempo (segundos) para o MCTS por jogada
-            temperature_threshold: nº de jogadas iniciais com temperatura alta (mais exploração)
+            num_games: number of self-play games to generate
+            time_limit: time limit (seconds) for MCTS per move
+            temperature_threshold: number of initial moves with high temperature (more exploration)
 
         Returns:
-            dict com estatísticas do self-play (vitórias, empates, tamanho médio dos jogos).
+            dict with self-play statistics (wins, draws, average game length).
         """
         
         print(f"\n{'='*60}")
-        print(f"SELF-PLAY: {num_games} jogos ({time_limit}s MCTS/jogada)")
+        print(f"SELF-PLAY: {num_games} games ({time_limit}s MCTS/move)")
         print(f"{'='*60}")
         
         stats = {'player1_wins': 0, 'player2_wins': 0, 'draws': 0, 'avg_game_length': 0}
@@ -187,18 +187,18 @@ class AlphaZeroTrainer:
     
     def train(self, batch_size=64, epochs=10):
         """
-        Treina a rede neural com os dados atualmente no buffer.
+        Trains the neural network with the data currently in the buffer.
 
         Args:
-            batch_size: tamanho do mini-batch
-            epochs: número de épocas de treino por iteração
+            batch_size: mini-batch size
+            epochs: number of training epochs per iteration
 
         Returns:
-            dicionário com histórico das losses.
+            dictionary with loss history.
         """
         if len(self.buffer) < batch_size: return None
         
-        print(f"\nTRAINING: {epochs} épocas...")
+        print(f"\nTRAINING: {epochs} epochs...")
         losses = train_network(self.network, self.optimizer, self.buffer, batch_size, epochs)
         
         if self.writer:
@@ -207,9 +207,9 @@ class AlphaZeroTrainer:
     
     def save_best(self):
         """
-        Salva o modelo atual como 'melhor modelo' na pasta models/.
+        Saves the current model as 'best model' in the models/ folder.
 
-        Também cria um backup histórico em models/history/ para análise posterior.
+        Also creates a historical backup in models/history/ for later analysis.
         """
         filename = os.path.join(self.models_dir, f"{self.game_type}_model_best.pth")
         
@@ -219,23 +219,23 @@ class AlphaZeroTrainer:
         os.makedirs(os.path.dirname(backup_name), exist_ok=True)
         shutil.copyfile(filename, backup_name)
         
-        print(f"💾 Modelo salvo em: {filename}")
+        print(f"💾 Model saved to: {filename}")
     
     def run_iteration(self, num_games, time_limit, batch_size, epochs):
         """
-        Executa uma iteração completa de treino:
+        Executes a complete training iteration:
           1) self-play
-          2) treino da rede
-          3) guardar modelo e buffer
+          2) network training
+          3) save model and buffer
 
         Args:
-            num_games: nº de jogos de self-play na iteração
-            time_limit: tempo por jogada no MCTS
-            batch_size: tamanho do batch de treino
-            epochs: nº de épocas de treino por iteração
+            num_games: number of self-play games in the iteration
+            time_limit: time per move in MCTS
+            batch_size: training batch size
+            epochs: number of training epochs per iteration
         """
         self.iteration += 1
-        print(f"\n>>> ITERAÇÃO {self.iteration} <<<")
+        print(f"\n>>> ITERATION {self.iteration} <<<")
         
         self.self_play(num_games, time_limit)
         self.train(batch_size, epochs)
@@ -246,25 +246,25 @@ class AlphaZeroTrainer:
 
     def run_training(self, num_iterations, games_per_iter, time_limit, batch_size, epochs):
         """
-        Corre várias iterações de treino consecutivas.
+        Runs multiple consecutive training iterations.
 
         Args:
-            num_iterations: número de iterações (ciclos) de treino
-            games_per_iter: nº de jogos de self-play por iteração
-            time_limit: tempo por jogada no MCTS
-            batch_size: tamanho do batch de treino
-            epochs: nº de épocas por iteração
+            num_iterations: number of training iterations (cycles)
+            games_per_iter: number of self-play games per iteration
+            time_limit: time per move in MCTS
+            batch_size: training batch size
+            epochs: number of epochs per iteration
         """
         for _ in range(num_iterations):
             self.run_iteration(games_per_iter, time_limit, batch_size, epochs)
 
 def main():
     """
-    Ponto de entrada principal do script de treino.
+    Main entry point of the training script.
 
-    Lê argumentos da linha de comandos, escolhe a configuração
-    (mini/custom/full), inicializa o AlphaZeroTrainer e arranca
-    o ciclo de treino para Gomoku ou Pente.
+    Reads command-line arguments, selects the configuration
+    (mini/custom/full), initializes the AlphaZeroTrainer, and starts
+    the training loop for Gomoku or Pente.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--game', default='gomoku', choices=['gomoku', 'pente'])
@@ -297,5 +297,5 @@ def main():
 
 if __name__ == "__main__":
     if torch.cuda.is_available():
-        print("⚡ GPU detectada!")
+        print("⚡ GPU detected!")
     main()
